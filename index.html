@@ -79,7 +79,7 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
     <div>
       <div class="lbl">Štart vykurovania pri</div>
       <div class="big g" id="dtv" aria-live="polite">–</div>
-      <div class="sub">T-water out PE</div>
+      <div class="sub">(T-optional water sensor)</div>
     </div>
   </div>
   <div id="chart"></div>
@@ -191,7 +191,7 @@ $('tp').addEventListener('click',()=>setT(S.t+S.st));
 function renderT(){
  const w=wtAt(S.t);
  $('wt').textContent=fmt(w)+' °C';
- const off=S.dt+0.1;
+ const off=S.dt+0.3;
  $('dtv').textContent=fmt(w-off)+' °C';
  $('atsub').textContent='pri teplote vzduchu '+fmt(S.t)+' °C';
  $('slider').value=S.t;
