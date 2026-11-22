@@ -67,7 +67,7 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
 </head>
 <body>
 <main>
-<header><h1>Ekvitermická krivka</h1><p>Výpočet požadovanej teploty vody na základe teploty vzduchu. </p></header>
+<header><h1>Ekvitermická krivka</h1><p>Výpočet teploty vody na základe teploty vzduchu. </p></header>
 
 <section class="card" aria-label="Rýchly výpočet">
   <div class="top">
@@ -79,7 +79,7 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
     <div>
       <div class="lbl">Štart vykurovania pri</div>
       <div class="big g" id="dtv" aria-live="polite">–</div>
-      <div class="sub">parametra T-water out PE</div>
+      <div class="sub">T-water out PE</div>
     </div>
   </div>
   <div id="chart"></div>
@@ -98,7 +98,7 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
 
 <section class="card">
   <details>
-    <summary>Tabuľka hodnôt<span id="npts"></span></summary>
+    <summary>Detailná tabuľka teplôt<span id="npts"></span></summary>
     <div class="blocks" id="blocks"></div>
   </details>
 </section>
@@ -209,7 +209,7 @@ function drawTable(){
  let html='';
  for(let b=0;b<3;b++){
   const part=pts.slice(b*size,(b+1)*size);if(!part.length)continue;
-  html+=`<div><h3>${fmt(part[0][1])} až ${fmt(part[part.length-1][1])} °C</h3><table><thead><tr><th>Vonku</th><th>Voda</th></tr></thead><tbody>`+
+  html+=`<div><h3>${fmt(part[0][1])} až ${fmt(part[part.length-1][1])} °C</h3><table><thead><tr><th>Vzduch</th><th>Voda</th></tr></thead><tbody>`+
   part.map(([i,at,w])=>{
    const a=.30-.24*((at-S.la)/(S.ua-S.la)),c=hi===lo?.2:.06+.34*((w-lo)/(hi-lo));
    return `<tr data-i="${i}"><td style="background:rgba(47,111,179,${a.toFixed(2)})">${fmt(at)}</td><td style="background:rgba(232,89,12,${c.toFixed(2)})">${fmt(w)}</td></tr>`}).join('')+
