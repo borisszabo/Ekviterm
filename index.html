@@ -24,14 +24,34 @@ h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
 header p{margin:2px 0 0;font-size:13px;color:#A9B8CF}
 .card{background:var(--card);border:1px solid var(--line);margin:12px 12px 0;padding:14px;border-radius:10px}
 h2{margin:0 0 8px;font-size:15px;font-weight:700}
-.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.top>div:last-child{text-align:right}
+.top{display:flex;align-items:flex-start;gap:10px}.top>div{flex:1;min-width:0}
 .big{font-size:clamp(30px,9vw,52px);white-space:nowrap;font-weight:700;line-height:1;color:var(--org);letter-spacing:-.02em}
 .lbl{font-size:13px;color:var(--mut)}
 .sub{font-size:14px;color:var(--mut);margin-top:4px}
+.num{display:flex;align-items:center;gap:5px;margin-top:4px}
+.nbox{flex:1;min-width:0;display:flex;align-items:center;gap:3px;height:54px;padding:0 7px;background:var(--inp);border:1px solid var(--line);border-radius:10px}
+.nbox:focus-within{outline:3px solid var(--blue);outline-offset:2px}
+.nbox input{flex:1;min-width:0;width:100%;border:0;outline:0;background:transparent;font:inherit;font-size:clamp(22px,6.8vw,34px);font-weight:700;color:var(--org);padding:0;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.nbox.g input{color:var(--grn)}
+.nbox .u{font-size:12px;font-weight:600;color:var(--mut)}
+.spin{display:flex;flex-direction:column;gap:4px}
+.spin button{min-width:38px;width:38px;height:25px;padding:0;font-size:11px;line-height:1}
+.note{margin-top:8px;font-size:13px;color:var(--mut)}
+.note:empty{display:none}
+.val.chg{background:var(--org);border-color:var(--org);color:#fff}
+.was{display:none;font-size:12px;font-weight:700;color:var(--org);margin-top:2px}
+.was.on{display:block}
+.sum{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--org)}
+.sum:empty{display:none}
+.acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.acts[hidden]{display:none}
+.acts button{min-width:0;padding:0 12px;font-size:13px;height:40px}
+.val{display:flex;align-items:center;justify-content:center;width:76px;height:44px;font-size:17px;font-weight:700;color:var(--inpink);background:var(--inp);border:1px solid var(--line);border-radius:8px}
 #chart{touch-action:pan-y;user-select:none;-webkit-user-select:none;margin:6px -4px 0}
 #chart svg{display:block;width:100%;height:auto}
 .t{fill:var(--mut);font-size:10px}.ax{stroke:var(--axis)}.gr{stroke:var(--grid)}
 .ln{stroke:var(--org);stroke-width:3;fill:none;stroke-linecap:round}
+.ext{stroke:var(--org);stroke-width:2.5;stroke-dasharray:5 4;opacity:.5;stroke-linecap:round}
 .gd{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3;opacity:.45}
 .dot{fill:var(--ink);stroke:var(--card);stroke-width:2.5}
 .ctl{display:flex;align-items:center;gap:8px;margin-top:6px}
@@ -73,15 +93,18 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
   <div class="top">
     <div>
       <div class="lbl">Požadovaná teplota vody</div>
-      <div class="big" id="wt" aria-live="polite">–</div>
+      <div class="num"><div class="nbox"><input id="wt" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" aria-label="Požadovaná teplota vody"><span class="u">°C</span></div>
+        <div class="spin"><button id="wu" aria-label="Zvýšiť teplotu vody">▲</button><button id="wd" aria-label="Znížiť teplotu vody">▼</button></div></div>
       <div class="sub" id="atsub"></div>
     </div>
     <div>
       <div class="lbl">Štart vykurovania pri</div>
-      <div class="big g" id="dtv" aria-live="polite">–</div>
+      <div class="num"><div class="nbox g"><input id="dtv" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" aria-label="Štart vykurovania pri"><span class="u">°C</span></div>
+        <div class="spin"><button id="su" aria-label="Zvýšiť štart vykurovania">▲</button><button id="sd" aria-label="Znížiť štart vykurovania">▼</button></div></div>
       <div class="sub">T-water out PE</div>
     </div>
   </div>
+  <div class="note" id="chg" role="status" aria-live="polite"></div>
   <div id="chart"></div>
   <div class="ctl">
     <button id="tm" aria-label="Znížiť teplotu vzduchu">−</button>
@@ -93,6 +116,7 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
 <section class="card">
   <h2>Parametre</h2>
   <div id="params"></div>
+  <div class="acts" id="acts" hidden><button id="okb">Uložiť</button><button id="rvb">Zrušiť</button></div>
   <p class="err" id="err" role="alert"></p>
 </section>
 
@@ -107,9 +131,18 @@ footer{margin:14px 16px 0;font-size:12px;color:var(--mut)}
 </main>
 
 <script>
-const KEY='ekviterm.v1', D={la:-18,ua:19,lw:33,uw:24,dt:3,st:.5,t:0};
+const KEY='ekviterm.v4', D={la:-15,ua:19,lw:24,uw:32,dt:3,st:.5,t:0};
 let S={...D};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')S={...D,...s}}catch(e){}
+for(const k in D)if(typeof S[k]!=='number'||!Number.isFinite(S[k]))S[k]=D[k];
+S.lw=Math.max(22,S.lw);S.uw=Math.min(34,S.uw);if(S.lw>S.uw)S.lw=S.uw;
+if(S.la<-25)S.la=-25;if(S.ua>25)S.ua=25;if(S.la>=S.ua){S.la=D.la;S.ua=D.ua}
+S.dt=D.dt;
+const BK='ekviterm.b4',PK=['la','ua','lw','uw','dt'];
+let B=null;
+try{B=JSON.parse(localStorage.getItem(BK)||'null')}catch(e){}
+if(!B||typeof B!=='object'||!PK.every(k=>Number.isFinite(B[k])))B=Object.fromEntries(PK.map(k=>[k,S[k]]));
+const saveB=()=>{try{localStorage.setItem(BK,JSON.stringify(B))}catch(e){}};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const r1=v=>Math.round(v*10)/10;
@@ -117,39 +150,133 @@ const fmt=v=>r1(v).toFixed(1).replace('.',',').replace('-','−');
 const FIELDS=[
  ['ua','Upper AT','Najvyššia teplota vzduchu',0,1],
  ['la','Lower AT','Najnižšia teplota vzduchu',0,1],
- ['lw','Lower WT','Dolná hranica teploty vody',1,1],
  ['uw','Upper WT','Horná hranica teploty vody',1,1],
+ ['lw','Lower WT','Dolná hranica teploty vody',1,1],
  ['dt','ΔT','Hysterézia teploty',2,1],
  ['st','Krokovanie teploty','',3,.1]];
 
 function check(s){
  if(![s.la,s.ua,s.lw,s.uw,s.dt,s.st].every(Number.isFinite)) return 'Vyplň všetky hodnoty číslami.';
  if(s.la<-25||s.ua>25) return 'Teplota vzduchu môže byť v rozmedzí od −25 do +25 °C.';
+ if(s.lw<22) return 'Lower WT musí byť aspoň 22 °C.';
+ if(s.uw>34) return 'Upper WT môže byť najviac 34 °C.';
+ if(s.lw>s.uw) return 'Lower WT nesmie byť väčšie ako Upper WT.';
  if(s.la>=s.ua) return 'Upper AT musí byť väčšie ako Lower AT.';
  if(s.dt<0) return 'ΔT nemôže byť záporné.';
  if(s.st<=0) return 'Krok tabuľky teplôt musí byť kladné číslo.';
  if((s.ua-s.la)/s.st>400) return 'Krok je príliš malý, zväčši ho.';
  return '';
 }
-const wtAt=at=>S.lw+(S.uw-S.lw)*(Math.min(S.ua,Math.max(S.la,at))-S.la)/(S.ua-S.la);
+const wtAt=at=>S.uw+(S.lw-S.uw)*(Math.min(S.ua,Math.max(S.la,at))-S.la)/(S.ua-S.la);
 const niceStep=r=>{const t=r/5;return [1,2,5,10,20].find(x=>x>=t)||20};
 
-/* ---- parametre ---- */
-$('params').innerHTML=FIELDS.map(([k,n,h,o])=>
- `<div class="row"><div class="nm${[' ',' o',' g',' p'][o]}"><b>${n}</b>${h?`<small>${h}</small>`:''}</div>
-  <div class="in"><button data-k="${k}" data-d="-1" aria-label="${n} menej">−</button>
-  <input type="number" step="any" id="f_${k}" aria-label="${n}" value="${S[k]}">
-  <button data-k="${k}" data-d="1" aria-label="${n} viac">+</button></div></div>`).join('');
-FIELDS.forEach(([k])=>$('f_'+k).addEventListener('input',e=>{S[k]=e.target.value===''?NaN:parseFloat(e.target.value);renderAll()}));
-
+/* ---- parametre (tlačidlami − a + sa menia všetky; zvyšné hodnoty sa prepočítajú) ---- */
+const pv=v=>String(Math.round(v*100)/100).replace('-','−');
+$('params').innerHTML=FIELDS.map(([k,n,h,o])=>{
+ const head=`<div class="nm${[' ',' o',' g',' p'][o]}"><b>${n}</b>${h?`<small>${h}</small>`:''}<div class="was" id="was_${k}"></div></div>`;
+ const ctl=k==='st'
+  ?`<div class="in"><button data-k="st" data-d="-1" aria-label="${n} menej">−</button>
+  <input type="number" step="any" id="f_st" aria-label="${n}" value="${S.st}">
+  <button data-k="st" data-d="1" aria-label="${n} viac">+</button></div>`
+  :k==='dt'
+  ?`<div class="in"><button data-k="dt" data-d="-1" aria-label="${n} menej">−</button><div class="val" id="f_dt">${pv(S.dt)}</div><button data-k="dt" data-d="1" aria-label="${n} viac">+</button></div>`
+  :`<div class="in"><button data-k="${k}" data-d="-1" aria-label="${n} menej">−</button><div class="val" id="f_${k}">${pv(S[k])}</div><button data-k="${k}" data-d="1" aria-label="${n} viac">+</button></div>`;
+ return `<div class="row">${head}${ctl}</div>`}).join('');
+const diffText=()=>PK.filter(k=>S[k]!==B[k]).map(k=>`${NAMES[k]} ${pv(B[k])} → ${pv(S[k])}`).join(', ');
+const updParams=()=>{
+ FIELDS.forEach(([k])=>{if(k==='st')return;
+  const on=S[k]!==B[k];
+  $('f_'+k).textContent=pv(S[k]);$('f_'+k).classList.toggle('chg',on);
+  const w=$('was_'+k);w.textContent=on?'Zmeniť z '+pv(B[k])+' na '+pv(S[k]):'';w.classList.toggle('on',on);
+ });
+ const d=diffText();
+ $('acts').hidden=!d;
+};
+$('okb').addEventListener('click',()=>{PK.forEach(k=>B[k]=S[k]);saveB();$('chg').textContent='';renderAll()});
+$('rvb').addEventListener('click',()=>{PK.forEach(k=>S[k]=B[k]);$('chg').textContent='';renderAll()});
+$('f_st').addEventListener('input',e=>{S.st=e.target.value===''?NaN:parseFloat(e.target.value);renderAll()});
 $('params').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
- const k=b.dataset.k,d=+b.dataset.d,step=FIELDS.find(f=>f[0]===k)[4];
- const cur=Number.isFinite(S[k])?S[k]:D[k];
- let v=(k==='st'?cur:Math.round(cur))+d*step; v=Math.round(v*100)/100;
- if(k==='st'&&v<=0)v=.1;
- S[k]=v;$('f_'+k).value=v;renderAll();
+ if(b.dataset.k!=='st'){
+  const k=b.dataset.k,d=+b.dataset.d;
+  if(k==='dt')S.dt=Math.max(0,Math.round(S.dt)+d);
+  else{
+   const lim={lw:[22,Math.min(34,S.uw)],uw:[Math.max(22,S.lw),34],la:[-25,S.ua-1],ua:[S.la+1,25]}[k];
+   S[k]=Math.min(lim[1],Math.max(lim[0],Math.round(S[k])+d));
+  }
+  $('chg').textContent='';renderAll();return;
+ }
+ const cur=Number.isFinite(S.st)?S.st:D.st;
+ let v=Math.round((cur+(+b.dataset.d)*.1)*100)/100;if(v<=0)v=.1;
+ S.st=v;$('f_st').value=v;renderAll();
 });
+
+/* ---- opačná logika: z požadovanej hodnoty do parametrov ----
+   Hľadá sa celočíselná zmena Lower/Upper WT (AT hranice aj ΔT ostávajú)
+   s čo najmenšou celkovou zmenou. Cena = súčet zmien + 3 za každý zmenený parameter
+   (AT hranice majú dvojnásobnú váhu) + penalizácia, ak sa hodnota nezhoduje presne. */
+const NAMES={lw:'Lower WT',uw:'Upper WT',la:'Lower AT',ua:'Upper AT',dt:'ΔT'};
+const pnum=s=>{const x=parseFloat(String(s).replace(/\s/g,'').replace('−','-').replace(',','.'));return Number.isFinite(x)?x:NaN};
+const isInt=x=>Math.abs(x-Math.round(x))<1e-9;
+const nextUp=x=>{x=r1(x);return isInt(x)?Math.round(x)+1:Math.ceil(x)};
+const nextDn=x=>{x=r1(x);return isInt(x)?Math.round(x)-1:Math.floor(x)};
+const curVal=mode=>mode==='w'?wtAt(S.t):wtAt(S.t)-S.dt-.1;
+
+function solve(mode,target){
+ const t=S.t,useDt=mode==='s',tg=r1(target);
+ let best=null;
+ for(let dla=0;dla<=0;dla++){/* AT hranice sa nemenia */const la=S.la+dla;if(la<-25)continue;
+ for(let dua=0;dua<=0;dua++){const ua=S.ua+dua;if(ua>25||ua<=la)continue;
+  const f=Math.min(1,Math.max(0,(t-la)/(ua-la))),c1=2*(Math.abs(dla)+Math.abs(dua)),n1=(dla?1:0)+(dua?1:0);
+  for(let dlw=-15;dlw<=15;dlw++){const lw=S.lw+dlw;if(lw<22||lw>34)continue;
+  for(let duw=-15;duw<=15;duw++){const uw=S.uw+duw;if(uw<22||uw>34||lw>uw)continue;
+   const base=c1+Math.abs(dlw)+Math.abs(duw)+3*(n1+(dlw?1:0)+(duw?1:0));
+   if(best&&base>=best.score)continue;
+   const w=uw+(lw-uw)*f;
+   for(let ddt=0;ddt<=0;ddt++){/* ΔT sa nikdy nemení */
+    const dt=S.dt+ddt;if(dt<0)continue;
+    const val=useDt?w-dt-.1:w;
+    const e=r1(val)===tg?0:Math.abs(val-target);
+    const sc=base+(ddt?Math.abs(ddt)+3:0)+(e?10+12*e:0);
+    if(!best||sc<best.score-1e-9||(Math.abs(sc-best.score)<1e-9&&e<best.err))best={score:sc,err:e,la,ua,lw,uw,dt};
+   }}}}}
+ return best;
+}
+function applyTarget(mode,target){
+ const r=solve(mode,target);if(!r)return false;
+ const keys=['lw','uw','la','ua','dt'],ch=keys.filter(k=>r[k]!==S[k]);
+ if(!ch.length)return false;
+ const txt=ch.map(k=>`${NAMES[k]} ${pv(S[k])} → ${pv(r[k])}`).join(', ');
+ keys.forEach(k=>S[k]=r[k]);
+ renderAll();
+ const got=curVal(mode);
+ $('chg').textContent='Zmenené: '+txt+(r1(got)===r1(target)?'':'. Presne '+fmt(target)+' °C sa pri celých číslach nedá dosiahnuť, najbližšie je '+fmt(got)+' °C.');
+ return true;
+}
+function spin(mode,dir){
+ if(check(S))return;
+ let tg=r1(r1(curVal(mode))+dir*.1);
+ for(let i=0;i<8;i++){
+  if(applyTarget(mode,tg))return;
+  tg=r1(tg+dir*.1);
+ }
+ $('chg').textContent='Ďalej to už nejde (Lower WT aspoň 22 °C, Upper WT najviac 34 °C).';
+}
+function wire(id,mode,up,dn){
+ const el=$(id);
+ el.addEventListener('focus',()=>el.select());
+ el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}});
+ el.addEventListener('change',()=>{
+  const v=pnum(el.value);el.blur();
+  if(!Number.isFinite(v)||check(S)){renderT();return}
+  if(!applyTarget(mode,r1(v)))$('chg').textContent='Parametre ostávajú bez zmeny.';
+ });
+ $(up).addEventListener('click',()=>spin(mode,1));
+ $(dn).addEventListener('click',()=>spin(mode,-1));
+}
+wire('wt','w','wu','wd');
+wire('dtv','s','su','sd');
+const setBox=(id,t)=>{const el=$(id);if(document.activeElement!==el)el.value=t};
 
 /* ---- graf ---- */
 const W=360,H=250,M={l:40,r:14,t:12,b:34};
@@ -166,7 +293,9 @@ function drawChart(){
  g+=`<line class="ax" x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}"/><line class="ax" x1="${M.l}" x2="${M.l}" y1="${M.t}" y2="${H-M.b}"/>`;
  g+=`<text class="t" x="${(M.l+W-M.r)/2}" y="${H-4}" text-anchor="middle">Teplota vzduchu (°C)</text>`;
  g+=`<text class="t" transform="translate(11 ${(M.t+H-M.b)/2}) rotate(-90)" text-anchor="middle">Teplota vody (°C)</text>`;
- g+=`<line class="ln" x1="${sx(S.la)}" y1="${sy(S.lw)}" x2="${sx(S.ua)}" y2="${sy(S.uw)}"/>`;
+ g+=`<line class="ln" x1="${sx(S.la)}" y1="${sy(S.uw)}" x2="${sx(S.ua)}" y2="${sy(S.lw)}"/>`;
+ if(S.la>xmin)g+=`<line class="ext" x1="${sx(xmin)}" y1="${sy(S.uw)}" x2="${sx(S.la)}" y2="${sy(S.uw)}"/>`;
+ if(S.ua<xmax)g+=`<line class="ext" x1="${sx(S.ua)}" y1="${sy(S.lw)}" x2="${sx(xmax)}" y2="${sy(S.lw)}"/>`;
  const cx=sx(S.t),cy=sy(wtAt(S.t));
  g+=`<line class="gd" x1="${cx}" x2="${cx}" y1="${cy}" y2="${H-M.b}"/><line class="gd" x1="${M.l}" x2="${cx}" y1="${cy}" y2="${cy}"/><circle class="dot" cx="${cx}" cy="${cy}" r="8"/>`;
  $('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graf ekvitermickej krivky">${g}</svg>`;
@@ -175,7 +304,7 @@ function pick(e){
  if(!G)return;
  const r=$('chart').getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*W;
  let v=G.xmin+(vx-M.l)/(W-M.l-M.r)*(G.xmax-G.xmin);
- v=Math.round((v-S.la)/S.st)*S.st+S.la;
+ v=Math.round(v/S.st)*S.st;
  setT(v);
 }
 let drag=false;
@@ -184,15 +313,15 @@ $('chart').addEventListener('pointermove',e=>{if(drag)pick(e)});
 ['pointerup','pointercancel'].forEach(t=>$('chart').addEventListener(t,()=>drag=false));
 
 /* ---- vonkajšia teplota t ---- */
-function setT(v){S.t=Math.round(Math.min(S.ua,Math.max(S.la,v))*100)/100;renderT();save()}
+function setT(v){$('chg').textContent='';S.t=Math.round(Math.min(25,Math.max(-25,v))*100)/100;renderT();save()}
 $('slider').addEventListener('input',e=>setT(+e.target.value));
 $('tm').addEventListener('click',()=>setT(S.t-S.st));
 $('tp').addEventListener('click',()=>setT(S.t+S.st));
 function renderT(){
  const w=wtAt(S.t);
- $('wt').textContent=fmt(w)+' °C';
+ setBox('wt',fmt(w));
  const off=S.dt+0.1;
- $('dtv').textContent=fmt(w-off)+' °C';
+ setBox('dtv',fmt(w-off));
  $('atsub').textContent='pri teplote vzduchu '+fmt(S.t)+' °C';
  $('slider').value=S.t;
  drawChart();
@@ -220,10 +349,11 @@ function drawTable(){
 }
 
 function renderAll(){
+ updParams();
  const e=check(S);$('err').textContent=e;
  if(e)return;
- S.t=Math.min(S.ua,Math.max(S.la,S.t));
- const sl=$('slider');sl.min=S.la;sl.max=S.ua;sl.step=S.st;
+ S.t=Math.min(25,Math.max(-25,S.t));
+ const sl=$('slider');sl.min=-25;sl.max=25;sl.step=S.st;
  drawTable();renderT();save();
 }
 renderAll();
