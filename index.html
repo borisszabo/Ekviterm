@@ -28,14 +28,13 @@ h2{margin:0 0 8px;font-size:15px;font-weight:700}
 .big{font-size:clamp(30px,9vw,52px);white-space:nowrap;font-weight:700;line-height:1;color:var(--org);letter-spacing:-.02em}
 .lbl{font-size:13px;color:var(--mut)}
 .sub{font-size:14px;color:var(--mut);margin-top:4px}
-#chart{touch-action:pan-y;user-select:none;-webkit-user-select:none;margin:6px -4px 0}
+#chart{touch-action:pan-y;user-select:none;-webkit-user-select:none;margin:18px -4px 0}
 #chart svg{display:block;width:100%;height:auto}
 .t{fill:var(--mut);font-size:10px}.ax{stroke:var(--axis)}.gr{stroke:var(--grid)}
 .ln{stroke:var(--org);stroke-width:3;fill:none;stroke-linecap:round}
 .gd{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3;opacity:.45}
-.bt{fill:var(--ink);font-size:11px;font-weight:700;pointer-events:none}
 .dot{fill:var(--ink);stroke:var(--card);stroke-width:2.5}
-.ctl{display:flex;align-items:center;gap:8px;margin-top:6px}
+.ctl{display:flex;align-items:center;gap:8px;margin-top:18px}
 .ctl input[type=range]{flex:1;min-width:0;accent-color:var(--org);height:44px}
 button{font:inherit;font-weight:700;color:var(--ink);background:var(--btn);border:1px solid var(--line);border-radius:8px;min-width:44px;height:44px;cursor:pointer;touch-action:manipulation}
 button:active{background:var(--line)}
@@ -135,13 +134,13 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...P,t:S.t,lc:LC}))
 const fp=v=>String(Math.round(v*100)/100).replace('.',',').replace('-','−');
 const $=id=>document.getElementById(id);
 const r1=v=>Math.round(v*10)/10;
-const fa=v=>{const r=r1(v);return r<0?'− '+fmt(-r):r>0?'+ '+fmt(r):fmt(r)};
+const fa=v=>(r1(v)>0?'+':'')+fmt(v);
 const fmt=v=>r1(v).toFixed(1).replace('.',',').replace('-','−');
 const FIELDS=[
  ['ua','Upper AT','Najvyššia teplota vzduchu',0,1],
  ['la','Lower AT','Najnižšia teplota vzduchu',0,1],
- ['lw','Lower WT','Dolná hranica teploty vody',1,1],
- ['uw','Upper WT','Horná hranica teploty vody',1,1],
+ ['lw','Lower WT','Najnižšia teplota vody',1,1],
+ ['uw','Upper WT','Najvyššia teplota vody',1,1],
  ['dt','ΔT hysterézia','',2,1],
  ['tol','ΔT tolerancia','',2,.1],
  ['st','Krokovanie teploty','',3,.1]];
@@ -185,22 +184,17 @@ function drawChart(){
  const ymin=Math.floor((lo-1)/ys)*ys,ymax=Math.ceil((hi+1)/ys)*ys;
  const sx=x=>M.l+(x-xmin)/(xmax-xmin)*(W-M.l-M.r),sy=y=>H-M.b-(y-ymin)/(ymax-ymin)*(H-M.t-M.b);
  G={xmin,xmax,sx};
+ const w=wtAt(S.t);
  let g='';
  for(let x=xmin;x<=xmax;x+=5)g+=`<line class="gr" x1="${sx(x)}" x2="${sx(x)}" y1="${M.t}" y2="${H-M.b}"/><text class="t" x="${sx(x)}" y="${H-M.b+14}" text-anchor="middle">${x}</text>`;
  for(let y=ymin;y<=ymax;y+=ys)g+=`<line class="gr" x1="${M.l}" x2="${W-M.r}" y1="${sy(y)}" y2="${sy(y)}"/><text class="t" x="${M.l-6}" y="${sy(y)+3}" text-anchor="end">${y}</text>`;
  g+=`<line class="ax" x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}"/><line class="ax" x1="${M.l}" x2="${M.l}" y1="${M.t}" y2="${H-M.b}"/>`;
- g+=`<text class="t" x="${(M.l+W-M.r)/2}" y="${H-4}" text-anchor="middle">Teplota vzduchu (°C)</text>`;
- g+=`<text class="t" transform="translate(11 ${(M.t+H-M.b)/2}) rotate(-90)" text-anchor="middle">Teplota vody (°C)</text>`;
+ g+=`<text class="t" x="${(M.l+W-M.r)/2}" y="${H-4}" text-anchor="middle">Teplota vzduchu ${fa(S.t)}°C</text>`;
+ g+=`<text class="t" transform="translate(11 ${(M.t+H-M.b)/2}) rotate(-90)" text-anchor="middle">Teplota vody ${fmt(w)}°C</text>`;
  g+=`<line class="ln" x1="${sx(S.la)}" y1="${sy(S.lw)}" x2="${sx(S.ua)}" y2="${sy(S.uw)}"/>`;
- const w=wtAt(S.t),st=w-(S.dt-S.tol),cx=sx(S.t),cy=sy(w);
+ const cx=sx(S.t),cy=sy(w);
  g+=`<line class="gd" x1="${cx}" x2="${cx}" y1="${cy}" y2="${H-M.b}"/><line class="gd" x1="${M.l}" x2="${cx}" y1="${cy}" y2="${cy}"/><circle class="dot" cx="${cx}" cy="${cy}" r="${drag?11:8}"/>`;
- const bw=104,bh=48;
- const bx=cx>(M.l+W-M.r)/2?cx-bw-14:cx+14;
- let by=cy-bh-12;if(by<M.t)by=cy+14;if(by+bh>H-M.b)by=H-M.b-bh;
- g+=`<g pointer-events="none"><rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="7" fill="var(--card)" stroke="var(--org)" stroke-width="1.5" opacity=".96"/>
- <text class="bt" x="${bx+8}" y="${by+14}">Vzduch ${fa(S.t)} °C</text>
- <text class="bt" x="${bx+8}" y="${by+28}" style="fill:var(--org)">Voda ${fmt(w)} °C</text>
- <text class="bt" x="${bx+8}" y="${by+42}" style="fill:var(--grn)">Štart ${fmt(st)} °C</text></g>`;
+
  $('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graf ekvitermickej krivky">${g}</svg>`;
 }
 function pick(e){
@@ -225,7 +219,7 @@ function renderT(){
  $('wt').textContent=fmt(w)+' °C';
  const off=S.dt-S.tol;
  $('dtv').textContent=fmt(w-off)+' °C';
- $('atsub').textContent='pri teplote vzduchu '+fmt(S.t)+' °C';
+ $('atsub').textContent='pri teplote vzduchu '+fa(S.t)+' °C';
  $('slider').value=S.t;
  drawChart();
  const i=Math.round((S.t-S.la)/S.st);
